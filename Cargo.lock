@@ -12,15 +12,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "arbitrary"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29d47fbf90d5149a107494b15a7dc8d69b351be2db3bb9691740e88ec17fd880"
-dependencies = [
- "derive_arbitrary",
-]
-
-[[package]]
 name = "ascii_converter"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -155,13 +146,13 @@ dependencies = [
 
 [[package]]
 name = "const-oid"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cec318a675afcb6a1ea1d4340e2d377e56e47c266f28043ceccbf4412ddfdd3b"
+version = "0.9.0"
 
 [[package]]
 name = "const-oid"
-version = "0.10.0-pre"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cec318a675afcb6a1ea1d4340e2d377e56e47c266f28043ceccbf4412ddfdd3b"
 
 [[package]]
 name = "core-foundation-sys"
@@ -221,20 +212,20 @@ checksum = "23d8666cb01533c39dde32bcbab8e227b4ed6679b2c925eba05feabea39508fb"
 
 [[package]]
 name = "der"
+version = "0.6.0"
+dependencies = [
+ "const-oid 0.9.0",
+ "der_derive",
+ "flagset",
+]
+
+[[package]]
+name = "der"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1a467a65c5e759bce6e65eaf91cc29f466cdc57cb65777bd646872a8a1fd4de"
 dependencies = [
  "const-oid 0.9.1",
-]
-
-[[package]]
-name = "der"
-version = "0.7.0-pre"
-dependencies = [
- "const-oid 0.10.0-pre",
- "der_derive",
- "flagset",
 ]
 
 [[package]]
@@ -253,20 +244,9 @@ dependencies = [
 
 [[package]]
 name = "der_derive"
-version = "0.7.0-pre"
+version = "0.6.0"
 dependencies = [
  "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "derive_arbitrary"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8a16495aeb28047bb1185fca837baf755e7d71ed3aeed7f8504654ffa927208"
-dependencies = [
  "proc-macro2",
  "quote",
  "syn",
@@ -356,6 +336,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "lite-json"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd0e787ffe1153141a0f6f6d759fdf1cc34b1226e088444523812fd412a5cca2"
+dependencies = [
+ "lite-parser",
+]
+
+[[package]]
+name = "lite-parser"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3d5f9dc37c52d889a21fd701983d02bb6a84f852c5140a6c80ef4557f7dc29e"
+dependencies = [
+ "paste",
+]
+
+[[package]]
 name = "log"
 version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -430,6 +428,12 @@ name = "once_cell"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
+
+[[package]]
+name = "paste"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d01a5bd0424d00070b0098dd17ebca6f961a959dead1dbcbbbc1d1cd8d3deeba"
 
 [[package]]
 name = "pem"
@@ -539,18 +543,18 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 [[package]]
 name = "spki"
 version = "0.6.0"
+dependencies = [
+ "der 0.6.0",
+]
+
+[[package]]
+name = "spki"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67cf02bbac7a337dc36e4f5a693db6c21e7863f45070f7064577eb4367a3212b"
 dependencies = [
  "base64ct",
  "der 0.6.1",
-]
-
-[[package]]
-name = "spki"
-version = "0.7.0-pre"
-dependencies = [
- "der 0.7.0-pre",
 ]
 
 [[package]]
@@ -788,14 +792,15 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 name = "x509"
 version = "0.1.0"
 dependencies = [
- "arbitrary",
  "ascii_converter",
  "barebones-x509",
- "const-oid 0.10.0-pre",
- "der 0.7.0-pre",
+ "chrono",
+ "const-oid 0.9.0",
+ "der 0.6.0",
  "der-parser",
  "flagset",
- "spki 0.7.0-pre",
+ "lite-json",
+ "spki 0.6.0",
  "x509-cert",
  "x509-certificate",
  "x509-parser",
@@ -803,12 +808,12 @@ dependencies = [
 
 [[package]]
 name = "x509-cert"
-version = "0.2.0-pre"
+version = "0.1.0"
 dependencies = [
- "const-oid 0.10.0-pre",
- "der 0.7.0-pre",
+ "const-oid 0.9.0",
+ "der 0.6.0",
  "flagset",
- "spki 0.7.0-pre",
+ "spki 0.6.0",
 ]
 
 [[package]]
@@ -825,7 +830,7 @@ dependencies = [
  "pem",
  "ring",
  "signature",
- "spki 0.6.0",
+ "spki 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
 ]
 

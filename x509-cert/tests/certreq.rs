@@ -1,9 +1,6 @@
 //! Certification request (`CertReq`) tests
 
-use der::{
-    asn1::{PrintableStringRef, Utf8StringRef},
-    Encode, Tag, Tagged,
-};
+use der::{Encode, Tag, Tagged};
 use hex_literal::hex;
 use x509_cert::request::{CertReq, Version};
 
@@ -41,8 +38,8 @@ fn decode_rsa_2048_der() {
     for (name, (oid, val)) in cr.info.subject.0.iter().zip(NAMES) {
         let kind = name.0.get(0).unwrap();
         let value = match kind.value.tag() {
-            Tag::Utf8String => Utf8StringRef::try_from(&kind.value).unwrap().as_str(),
-            Tag::PrintableString => PrintableStringRef::try_from(&kind.value).unwrap().as_str(),
+            Tag::Utf8String => kind.value.utf8_string().unwrap().as_str(),
+            Tag::PrintableString => kind.value.printable_string().unwrap().as_str(),
             _ => panic!("unexpected tag"),
         };
 
@@ -55,7 +52,7 @@ fn decode_rsa_2048_der() {
     let alg = cr.info.public_key.algorithm;
     assert_eq!(alg.oid, "1.2.840.113549.1.1.1".parse().unwrap());
     assert!(alg.parameters.unwrap().is_null());
-    assert_eq!(cr.info.public_key.subject_public_key.raw_bytes(), RSA_KEY);
+    assert_eq!(cr.info.public_key.subject_public_key, RSA_KEY);
 
     // Check the attributes (just one; contains extensions).
     assert_eq!(cr.info.attributes.len(), 1);

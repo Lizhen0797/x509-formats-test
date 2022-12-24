@@ -7,7 +7,7 @@ use crate::{Certificate, TbsCertificate};
 use der::asn1::{OctetStringRef, Utf8StringRef};
 use der::{Choice, Enumerated, Sequence};
 use flagset::{flags, FlagSet};
-use spki::SubjectPublicKeyInfoRef;
+use spki::SubjectPublicKeyInfo;
 
 /// Version identifier for TrustAnchorInfo
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Enumerated)]
@@ -45,7 +45,7 @@ pub struct TrustAnchorInfo<'a> {
     #[asn1(default = "Default::default")]
     pub version: Version,
 
-    pub pub_key: SubjectPublicKeyInfoRef<'a>,
+    pub pub_key: SubjectPublicKeyInfo<'a>,
 
     pub key_id: OctetStringRef<'a>,
 
@@ -75,7 +75,7 @@ pub struct TrustAnchorInfo<'a> {
 #[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 #[allow(missing_docs)]
 pub struct CertPathControls<'a> {
-    pub ta_name: Name,
+    pub ta_name: Name<'a>,
 
     #[asn1(context_specific = "0", tag_mode = "IMPLICIT", optional = "true")]
     pub certificate: Option<Certificate<'a>>,

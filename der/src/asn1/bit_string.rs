@@ -180,7 +180,7 @@ impl<'a> TryFrom<&&'a [u8]> for BitStringRef<'a> {
     type Error = Error;
 
     fn try_from(bytes: &&'a [u8]) -> Result<BitStringRef<'a>> {
-        BitStringRef::from_bytes(bytes)
+        BitStringRef::from_bytes(*bytes)
     }
 }
 
@@ -196,23 +196,6 @@ impl<'a> TryFrom<BitStringRef<'a>> for &'a [u8] {
 
 impl<'a> FixedTag for BitStringRef<'a> {
     const TAG: Tag = Tag::BitString;
-}
-
-// Implement by hand because the derive would create invalid values.
-// Use the constructor to create a valid value.
-#[cfg(feature = "arbitrary")]
-impl<'a> arbitrary::Arbitrary<'a> for BitStringRef<'a> {
-    fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
-        Self::new(
-            u.int_in_range(0..=Self::MAX_UNUSED_BITS)?,
-            ByteSlice::arbitrary(u)?.as_slice(),
-        )
-        .map_err(|_| arbitrary::Error::IncorrectFormat)
-    }
-
-    fn size_hint(depth: usize) -> (usize, Option<usize>) {
-        arbitrary::size_hint::and(u8::size_hint(depth), ByteSlice::size_hint(depth))
-    }
 }
 
 /// Owned form of ASN.1 `BIT STRING` type.
@@ -354,31 +337,6 @@ impl ValueOrd for BitString {
     }
 }
 
-#[cfg(feature = "alloc")]
-mod allocating {
-    use super::*;
-    use crate::referenced::*;
-    use alloc::vec::Vec;
-
-    impl<'a> RefToOwned<'a> for BitStringRef<'a> {
-        type Owned = BitString;
-        fn to_owned(&self) -> Self::Owned {
-            BitString {
-                unused_bits: self.unused_bits,
-                bit_length: self.bit_length,
-                inner: Vec::from(self.inner.as_slice()),
-            }
-        }
-    }
-
-    impl OwnedToRef for BitString {
-        type Borrowed<'a> = BitStringRef<'a>;
-        fn to_ref(&self) -> Self::Borrowed<'_> {
-            self.into()
-        }
-    }
-}
-
 /// Iterator over the bits of a [`BitString`].
 pub struct BitStringIter<'a> {
     /// [`BitString`] being iterated over.
@@ -415,17 +373,6 @@ impl<'a> FusedIterator for BitStringIter<'a> {}
 #[cfg(feature = "flagset")]
 impl<T: flagset::Flags> FixedTag for flagset::FlagSet<T> {
     const TAG: Tag = BitStringRef::TAG;
-}
-
-#[cfg(feature = "flagset")]
-impl<T> ValueOrd for flagset::FlagSet<T>
-where
-    T: flagset::Flags,
-    T::Type: Ord,
-{
-    fn value_cmp(&self, other: &Self) -> Result<Ordering> {
-        Ok(self.bits().cmp(&other.bits()))
-    }
 }
 
 #[cfg(feature = "flagset")]

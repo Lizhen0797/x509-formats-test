@@ -2,19 +2,18 @@
 
 use crate::ext::Extensions;
 use crate::name::Name;
-use crate::serial_number::SerialNumber;
 use crate::time::Time;
 use crate::Version;
 
 use alloc::vec::Vec;
 
-use der::asn1::BitStringRef;
-use der::{Sequence, ValueOrd};
-use spki::AlgorithmIdentifierRef;
+use der::asn1::{BitStringRef, UIntRef};
+use der::Sequence;
+use spki::AlgorithmIdentifier;
 
 /// `CertificateList` as defined in [RFC 5280 Section 5.1].
 ///
-/// ```text
+///```text
 /// CertificateList  ::=  SEQUENCE  {
 ///     tbsCertList          TBSCertList,
 ///     signatureAlgorithm   AlgorithmIdentifier,
@@ -23,11 +22,11 @@ use spki::AlgorithmIdentifierRef;
 /// ```
 ///
 /// [RFC 5280 Section 5.1]: https://datatracker.ietf.org/doc/html/rfc5280#section-5.1
-#[derive(Clone, Debug, Eq, PartialEq, Sequence, ValueOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 #[allow(missing_docs)]
 pub struct CertificateList<'a> {
     pub tbs_cert_list: TbsCertList<'a>,
-    pub signature_algorithm: AlgorithmIdentifierRef<'a>,
+    pub signature_algorithm: AlgorithmIdentifier<'a>,
     pub signature: BitStringRef<'a>,
 }
 
@@ -36,7 +35,7 @@ pub struct CertificateList<'a> {
 /// This type is used for the `revoked_certificates` field of `TbsCertList`.
 /// See [RFC 5280 Section 5.1].
 ///
-/// ```text
+///```text
 /// RevokedCert ::= SEQUENCE {
 ///     userCertificate         CertificateSerialNumber,
 ///     revocationDate          Time,
@@ -45,10 +44,10 @@ pub struct CertificateList<'a> {
 /// ```
 ///
 /// [RFC 5280 Section 5.1]: https://datatracker.ietf.org/doc/html/rfc5280#section-5.1
-#[derive(Clone, Debug, Eq, PartialEq, Sequence, ValueOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 #[allow(missing_docs)]
 pub struct RevokedCert<'a> {
-    pub serial_number: SerialNumber,
+    pub serial_number: UIntRef<'a>,
     pub revocation_date: Time,
     pub crl_entry_extensions: Option<Extensions<'a>>,
 }
@@ -72,12 +71,12 @@ pub struct RevokedCert<'a> {
 /// ```
 ///
 /// [RFC 5280 Section 5.1]: https://datatracker.ietf.org/doc/html/rfc5280#section-5.1
-#[derive(Clone, Debug, Eq, PartialEq, Sequence, ValueOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 #[allow(missing_docs)]
 pub struct TbsCertList<'a> {
     pub version: Version,
-    pub signature: AlgorithmIdentifierRef<'a>,
-    pub issuer: Name,
+    pub signature: AlgorithmIdentifier<'a>,
+    pub issuer: Name<'a>,
     pub this_update: Time,
     pub next_update: Option<Time>,
     pub revoked_certificates: Option<Vec<RevokedCert<'a>>>,

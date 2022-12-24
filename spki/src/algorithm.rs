@@ -2,13 +2,8 @@
 
 use crate::{Error, Result};
 use core::cmp::Ordering;
-use der::{
-    asn1::{AnyRef, Choice, ObjectIdentifier},
-    Decode, DecodeValue, DerOrd, Encode, Header, Reader, Sequence, ValueOrd,
-};
-
-#[cfg(feature = "alloc")]
-use der::asn1::Any;
+use der::asn1::{AnyRef, ObjectIdentifier};
+use der::{Decode, DecodeValue, DerOrd, Encode, Header, Reader, Sequence, ValueOrd};
 
 /// X.509 `AlgorithmIdentifier` as defined in [RFC 5280 Section 4.1.1.2].
 ///
@@ -19,74 +14,17 @@ use der::asn1::Any;
 /// ```
 ///
 /// [RFC 5280 Section 4.1.1.2]: https://tools.ietf.org/html/rfc5280#section-4.1.1.2
-#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub struct AlgorithmIdentifier<Params> {
+pub struct AlgorithmIdentifier<'a> {
     /// Algorithm OID, i.e. the `algorithm` field in the `AlgorithmIdentifier`
     /// ASN.1 schema.
     pub oid: ObjectIdentifier,
 
     /// Algorithm `parameters`.
-    pub parameters: Option<Params>,
+    pub parameters: Option<AnyRef<'a>>,
 }
 
-impl<'a, Params> DecodeValue<'a> for AlgorithmIdentifier<Params>
-where
-    Params: Choice<'a>,
-{
-    fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> der::Result<Self> {
-        reader.read_nested(header.length, |reader| {
-            Ok(Self {
-                oid: reader.decode()?,
-                parameters: reader.decode()?,
-            })
-        })
-    }
-}
-
-impl<'a, Params> Sequence<'a> for AlgorithmIdentifier<Params>
-where
-    Params: Choice<'a> + Encode,
-{
-    fn fields<F, T>(&self, f: F) -> der::Result<T>
-    where
-        F: FnOnce(&[&dyn Encode]) -> der::Result<T>,
-    {
-        f(&[&self.oid, &self.parameters])
-    }
-}
-
-impl<'a, Params> TryFrom<&'a [u8]> for AlgorithmIdentifier<Params>
-where
-    Params: Choice<'a> + Encode,
-{
-    type Error = Error;
-
-    fn try_from(bytes: &'a [u8]) -> Result<Self> {
-        Ok(Self::from_der(bytes)?)
-    }
-}
-
-impl<Params> ValueOrd for AlgorithmIdentifier<Params>
-where
-    Params: DerOrd,
-{
-    fn value_cmp(&self, other: &Self) -> der::Result<Ordering> {
-        match self.oid.der_cmp(&other.oid)? {
-            Ordering::Equal => self.parameters.der_cmp(&other.parameters),
-            other => Ok(other),
-        }
-    }
-}
-
-/// `AlgorithmIdentifier` reference which has `AnyRef` parameters.
-pub type AlgorithmIdentifierRef<'a> = AlgorithmIdentifier<AnyRef<'a>>;
-
-/// `AlgorithmIdentifier` reference which has `Any` parameters.
-#[cfg(feature = "alloc")]
-pub type AlgorithmIdentifierOwned = AlgorithmIdentifier<Any>;
-
-impl<Params> AlgorithmIdentifier<Params> {
+impl<'a> AlgorithmIdentifier<'a> {
     /// Assert the `algorithm` OID is an expected value.
     pub fn assert_algorithm_oid(&self, expected_oid: ObjectIdentifier) -> Result<ObjectIdentifier> {
         if self.oid == expected_oid {
@@ -95,9 +33,7 @@ impl<Params> AlgorithmIdentifier<Params> {
             Err(Error::OidUnknown { oid: expected_oid })
         }
     }
-}
 
-impl<'a> AlgorithmIdentifierRef<'a> {
     /// Assert `parameters` is an OID and has the expected value.
     pub fn assert_parameters_oid(
         &self,
@@ -158,28 +94,39 @@ impl<'a> AlgorithmIdentifierRef<'a> {
     }
 }
 
-#[cfg(feature = "alloc")]
-mod allocating {
-    use super::*;
-    use der::referenced::*;
-
-    impl<'a> RefToOwned<'a> for AlgorithmIdentifierRef<'a> {
-        type Owned = AlgorithmIdentifierOwned;
-        fn to_owned(&self) -> Self::Owned {
-            AlgorithmIdentifier {
-                oid: self.oid,
-                parameters: self.parameters.to_owned(),
-            }
-        }
+impl<'a> DecodeValue<'a> for AlgorithmIdentifier<'a> {
+    fn decode_value<R: Reader<'a>>(reader: &mut R, header: Header) -> der::Result<Self> {
+        reader.read_nested(header.length, |reader| {
+            Ok(Self {
+                oid: reader.decode()?,
+                parameters: reader.decode()?,
+            })
+        })
     }
+}
 
-    impl OwnedToRef for AlgorithmIdentifierOwned {
-        type Borrowed<'a> = AlgorithmIdentifierRef<'a>;
-        fn to_ref(&self) -> Self::Borrowed<'_> {
-            AlgorithmIdentifier {
-                oid: self.oid,
-                parameters: self.parameters.to_ref(),
-            }
+impl<'a> Sequence<'a> for AlgorithmIdentifier<'a> {
+    fn fields<F, T>(&self, f: F) -> der::Result<T>
+    where
+        F: FnOnce(&[&dyn Encode]) -> der::Result<T>,
+    {
+        f(&[&self.oid, &self.parameters])
+    }
+}
+
+impl<'a> TryFrom<&'a [u8]> for AlgorithmIdentifier<'a> {
+    type Error = Error;
+
+    fn try_from(bytes: &'a [u8]) -> Result<Self> {
+        Ok(Self::from_der(bytes)?)
+    }
+}
+
+impl ValueOrd for AlgorithmIdentifier<'_> {
+    fn value_cmp(&self, other: &Self) -> der::Result<Ordering> {
+        match self.oid.der_cmp(&other.oid)? {
+            Ordering::Equal => self.parameters.der_cmp(&other.parameters),
+            other => Ok(other),
         }
     }
 }

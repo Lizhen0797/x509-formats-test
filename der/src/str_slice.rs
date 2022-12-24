@@ -6,7 +6,7 @@ use core::str;
 
 /// String slice newtype which respects the [`Length::max`] limit.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub struct StrSlice<'a> {
+pub(crate) struct StrSlice<'a> {
     /// Inner value
     pub(crate) inner: &'a str,
 

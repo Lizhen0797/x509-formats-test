@@ -2,7 +2,7 @@
 
 use crate::{
     arcs::{ARC_MAX_FIRST, ARC_MAX_SECOND},
-    Arc, Buffer, Error, ObjectIdentifier, Result,
+    Arc, Error, ObjectIdentifier, Result,
 };
 
 /// BER/DER encoder
@@ -45,8 +45,8 @@ impl Encoder {
     pub(crate) const fn extend(oid: ObjectIdentifier) -> Self {
         Self {
             state: State::Body,
-            bytes: oid.buffer.bytes,
-            cursor: oid.buffer.length as usize,
+            bytes: oid.bytes,
+            cursor: oid.length as usize,
         }
     }
 
@@ -101,12 +101,10 @@ impl Encoder {
     /// Finish encoding an OID.
     pub(crate) const fn finish(self) -> Result<ObjectIdentifier> {
         if self.cursor >= 2 {
-            let bytes = Buffer {
+            Ok(ObjectIdentifier {
                 bytes: self.bytes,
                 length: self.cursor as u8,
-            };
-
-            Ok(ObjectIdentifier { buffer: bytes })
+            })
         } else {
             Err(Error::NotEnoughArcs)
         }

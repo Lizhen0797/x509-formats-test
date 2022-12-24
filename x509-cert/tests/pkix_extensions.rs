@@ -1,6 +1,6 @@
 //! Certificate tests
 use const_oid::AssociatedOid;
-use der::asn1::{Ia5StringRef, PrintableStringRef, Utf8StringRef};
+use der::asn1::UIntRef;
 use der::{Decode, Encode, ErrorKind, Length, Tag, Tagged};
 use hex_literal::hex;
 use x509_cert::ext::pkix::crl::dp::{DistributionPoint, ReasonFlags, Reasons};
@@ -8,7 +8,7 @@ use x509_cert::ext::pkix::name::{DistributionPointName, GeneralName, GeneralName
 use x509_cert::ext::pkix::*;
 use x509_cert::ext::Extensions;
 use x509_cert::name::Name;
-use x509_cert::{serial_number::SerialNumber, Certificate, Version};
+use x509_cert::{Certificate, Version};
 
 use const_oid::db::rfc5280::*;
 use const_oid::db::rfc5912::ID_CE_CERTIFICATE_POLICIES;
@@ -138,7 +138,7 @@ fn decode_general_name() {
     let bytes = hex!("A021060A2B060104018237140203A0130C1155706E5F323134393530313330406D696C");
     match GeneralName::from_der(&bytes).unwrap() {
         GeneralName::OtherName(other_name) => {
-            let onval = Utf8StringRef::try_from(other_name.value).unwrap();
+            let onval = other_name.value.utf8_string().unwrap();
             assert_eq!(onval.to_string(), "Upn_214950130@mil");
         }
         _ => panic!("Failed to parse OtherName from GeneralName"),
@@ -285,7 +285,7 @@ fn decode_cert() {
                     for pqi in pq.iter() {
                         if 0 == counter_pq {
                             assert_eq!("1.3.6.1.5.5.7.2.1", pqi.policy_qualifier_id.to_string());
-                            let cpsval = Ia5StringRef::try_from(pqi.qualifier.unwrap()).unwrap();
+                            let cpsval = pqi.qualifier.unwrap().ia5_string().unwrap();
                             assert_eq!(
                                 "https://secure.identrust.com/certificates/policy/IGC/index.html",
                                 cpsval.to_string()
@@ -486,7 +486,7 @@ fn decode_cert() {
     let target_serial: [u8; 1] = [2];
     assert_eq!(
         cert.tbs_certificate.serial_number,
-        SerialNumber::new(&target_serial).unwrap()
+        UIntRef::new(&target_serial).unwrap()
     );
     assert_eq!(
         cert.tbs_certificate.signature.oid.to_string(),
@@ -508,26 +508,17 @@ fn decode_cert() {
         for atav in i1 {
             if 0 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.6");
-                assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
-                    "US"
-                );
+                assert_eq!(atav.value.printable_string().unwrap().to_string(), "US");
             } else if 1 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.10");
                 assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
+                    atav.value.printable_string().unwrap().to_string(),
                     "Test Certificates 2011"
                 );
             } else if 2 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.3");
                 assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
+                    atav.value.printable_string().unwrap().to_string(),
                     "Trust Anchor"
                 );
             }
@@ -559,26 +550,17 @@ fn decode_cert() {
         for atav in i1 {
             if 0 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.6");
-                assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
-                    "US"
-                );
+                assert_eq!(atav.value.printable_string().unwrap().to_string(), "US");
             } else if 1 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.10");
                 assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
+                    atav.value.printable_string().unwrap().to_string(),
                     "Test Certificates 2011"
                 );
             } else if 2 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.3");
                 assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
+                    atav.value.printable_string().unwrap().to_string(),
                     "Good CA"
                 );
             }
@@ -1019,35 +1001,6 @@ fn decode_idp() {
         }
     }
 
-    // Tag on second RDN in first name is TeletexString (20) instead of PrintableString (19)
-    let idp =
-        IssuingDistributionPoint::from_der(&hex!("30820168A0820161A082015DA4753073310B3009060355040613025553311F301D060355040A14165465737420436572746966696361746573203230313731183016060355040B130F696E64697265637443524C204341353129302706035504031320696E6469726563742043524C20666F7220696E64697265637443524C20434136A4753073310B3009060355040613025553311F301D060355040A13165465737420436572746966696361746573203230313731183016060355040B130F696E64697265637443524C204341353129302706035504031320696E6469726563742043524C20666F7220696E64697265637443524C20434137A46D306B310B3009060355040613025553311F301D060355040A13165465737420436572746966696361746573203230313731183016060355040B130F696E64697265637443524C204341353121301F0603550403131843524C3120666F7220696E64697265637443524C204341358401FF")).unwrap();
-    assert_eq!(idp.only_contains_ca_certs, false);
-    assert_eq!(idp.only_contains_attribute_certs, false);
-    assert_eq!(idp.only_contains_user_certs, false);
-    assert_eq!(idp.indirect_crl, true);
-    assert!(idp.only_some_reasons.is_none());
-    assert!(idp.distribution_point.is_some());
-    let dp = idp.distribution_point.unwrap();
-    match dp {
-        DistributionPointName::FullName(dp) => {
-            assert_eq!(3, dp.len());
-            for gn in dp {
-                match gn {
-                    GeneralName::DirectoryName(gn) => {
-                        assert_eq!(4, gn.0.len());
-                    }
-                    _ => {
-                        panic!("Expected DirectoryName")
-                    }
-                }
-            }
-        }
-        _ => {
-            panic!("Expected FullName")
-        }
-    }
-
     //---------------------------------
     // Negative tests
     //---------------------------------
@@ -1137,6 +1090,12 @@ fn decode_idp() {
         IssuingDistributionPoint::from_der(&hex!("30820168A0820161A082015DA4753073310B3009060355040613025553311F301D060355040A13165465737420436572746966696361746573203230313731183016060355040B130F696E64697265637443524C204341353129302706035504031320696E6469726563742043524C20666F7220696E64697265637443524C20434136A4753073310B3009060355040613025553311F301D060355040A13165465737420436572746966696361746573203230313731183016060355040B130F696E64697265637443524C204341353129302706035504031320696E6469726563742043524C20666F7220696E64697265637443524C20434137A46D306B310B3009060355040613025553311F301D060355040A13165465737420436572746966696361746573203230313731183016060355040B130F696E64697265637443524C204341353121301F0603550403131843524C3120666F7220696E64697265637443524C20434135840175"));
     let err = idp.err().unwrap();
     assert_eq!(ErrorKind::Noncanonical { tag: Tag::Boolean }, err.kind());
+
+    // Tag on second RDN in first name is TeletexString (20) instead of PrintableString (19) (and TeletexString is not supported)
+    let idp =
+        IssuingDistributionPoint::from_der(&hex!("30820168A0820161A082015DA4753073310B3009060355040613025553311F301D060355040A14165465737420436572746966696361746573203230313731183016060355040B130F696E64697265637443524C204341353129302706035504031320696E6469726563742043524C20666F7220696E64697265637443524C20434136A4753073310B3009060355040613025553311F301D060355040A13165465737420436572746966696361746573203230313731183016060355040B130F696E64697265637443524C204341353129302706035504031320696E6469726563742043524C20666F7220696E64697265637443524C20434137A46D306B310B3009060355040613025553311F301D060355040A13165465737420436572746966696361746573203230313731183016060355040B130F696E64697265637443524C204341353121301F0603550403131843524C3120666F7220696E64697265637443524C204341358401FF"));
+    let err = idp.err().unwrap();
+    assert_eq!(ErrorKind::TagUnknown { byte: 20u8.into() }, err.kind());
 
     // Length on second RDN in first name indicates more bytes than are present
     let idp =

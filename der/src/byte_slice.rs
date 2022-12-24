@@ -11,10 +11,10 @@ use core::cmp::Ordering;
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub(crate) struct ByteSlice<'a> {
     /// Precomputed `Length` (avoids possible panicking conversions)
-    pub length: Length,
+    length: Length,
 
     /// Inner value
-    pub inner: &'a [u8],
+    inner: &'a [u8],
 }
 
 impl<'a> ByteSlice<'a> {
@@ -86,6 +86,15 @@ impl DerOrd for ByteSlice<'_> {
     }
 }
 
+impl<'a> From<&'a [u8; 1]> for ByteSlice<'a> {
+    fn from(byte: &'a [u8; 1]) -> ByteSlice<'a> {
+        Self {
+            length: Length::ONE,
+            inner: byte,
+        }
+    }
+}
+
 impl<'a> From<StrSlice<'a>> for ByteSlice<'a> {
     fn from(s: StrSlice<'a>) -> ByteSlice<'a> {
         let bytes = s.as_bytes();
@@ -103,35 +112,5 @@ impl<'a> TryFrom<&'a [u8]> for ByteSlice<'a> {
 
     fn try_from(slice: &'a [u8]) -> Result<Self> {
         Self::new(slice)
-    }
-}
-
-// Implement by hand because the derive would create invalid values.
-// Make sure the length and the inner.len matches.
-#[cfg(feature = "arbitrary")]
-impl<'a> arbitrary::Arbitrary<'a> for ByteSlice<'a> {
-    fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
-        let length = u.arbitrary()?;
-        Ok(Self {
-            length,
-            inner: u.bytes(u32::from(length) as usize)?,
-        })
-    }
-
-    fn size_hint(depth: usize) -> (usize, Option<usize>) {
-        arbitrary::size_hint::and(Length::size_hint(depth), (0, None))
-    }
-}
-
-#[cfg(feature = "alloc")]
-mod allocating {
-    use super::ByteSlice;
-    use crate::{referenced::RefToOwned, Bytes};
-
-    impl<'a> RefToOwned<'a> for ByteSlice<'a> {
-        type Owned = Bytes;
-        fn to_owned(&self) -> Self::Owned {
-            Bytes::from(*self)
-        }
     }
 }

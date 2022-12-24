@@ -3,7 +3,7 @@
 use core::fmt;
 use core::time::Duration;
 use der::asn1::{GeneralizedTime, UtcTime};
-use der::{Choice, DateTime, Decode, Error, Result, Sequence, ValueOrd};
+use der::{Choice, DateTime, Decode, Error, Result, Sequence};
 
 #[cfg(feature = "std")]
 use std::time::SystemTime;
@@ -21,8 +21,7 @@ use std::time::SystemTime;
 ///
 /// [RFC 5280 Section 4.1.2.5]: https://tools.ietf.org/html/rfc5280#section-4.1.2.5
 /// [RFC 5280 Appendix A]: https://tools.ietf.org/html/rfc5280#page-117
-#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
-#[derive(Choice, Copy, Clone, Debug, Eq, PartialEq, ValueOrd)]
+#[derive(Choice, Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Time {
     /// Legacy UTC time (has 2-digit year, valid only through 2050).
     #[asn1(type = "UTCTime")]
@@ -114,8 +113,7 @@ impl TryFrom<SystemTime> for Time {
 /// }
 /// ```
 /// [RFC 5280 Section 4.1.2.5]: https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.5
-#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Sequence, ValueOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Sequence)]
 pub struct Validity {
     /// notBefore value
     pub not_before: Time,

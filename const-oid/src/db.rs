@@ -17,6 +17,24 @@ pub use gen::*;
 
 use crate::{Error, ObjectIdentifier};
 
+/// A const implementation of byte equals.
+const fn eq(lhs: &[u8], rhs: &[u8]) -> bool {
+    if lhs.len() != rhs.len() {
+        return false;
+    }
+
+    let mut i = 0usize;
+    while i < lhs.len() {
+        if lhs[i] != rhs[i] {
+            return false;
+        }
+
+        i += 1;
+    }
+
+    true
+}
+
 /// A const implementation of case-insensitive ASCII equals.
 const fn eq_case(lhs: &[u8], rhs: &[u8]) -> bool {
     if lhs.len() != rhs.len() {
@@ -56,8 +74,7 @@ impl<'a> Database<'a> {
 
         while i < self.0.len() {
             let lhs = self.0[i].0;
-
-            if lhs.buffer.eq(&oid.buffer) {
+            if lhs.length == oid.length && eq(&lhs.bytes, &oid.bytes) {
                 return Some(self.0[i].1);
             }
 

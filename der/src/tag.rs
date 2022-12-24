@@ -1,5 +1,4 @@
 //! ASN.1 tags.
-#![cfg_attr(feature = "arbitrary", allow(clippy::integer_arithmetic))]
 
 mod class;
 mod mode;
@@ -47,7 +46,6 @@ impl<T: FixedTag> Tagged for T {
 /// - Bits 8/7: [`Class`]
 /// - Bit 6: primitive (0) or constructed (1)
 /// - Bits 5-1: tag number
-#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum Tag {
@@ -89,12 +87,6 @@ pub enum Tag {
 
     /// `PrintableString` tag: `19`.
     PrintableString,
-
-    /// `TeletexString` tag: `20`.
-    TeletexString,
-
-    /// `VideotexString` tag: `21`.
-    VideotexString,
 
     /// `IA5String` tag: `22`.
     Ia5String,
@@ -207,8 +199,6 @@ impl Tag {
             Tag::Set => 0x11 | CONSTRUCTED_FLAG,
             Tag::NumericString => 0x12,
             Tag::PrintableString => 0x13,
-            Tag::TeletexString => 0x14,
-            Tag::VideotexString => 0x15,
             Tag::Ia5String => 0x16,
             Tag::UtcTime => 0x17,
             Tag::GeneralizedTime => 0x18,
@@ -276,8 +266,6 @@ impl TryFrom<u8> for Tag {
             0x0C => Ok(Tag::Utf8String),
             0x12 => Ok(Tag::NumericString),
             0x13 => Ok(Tag::PrintableString),
-            0x14 => Ok(Tag::TeletexString),
-            0x15 => Ok(Tag::VideotexString),
             0x16 => Ok(Tag::Ia5String),
             0x17 => Ok(Tag::UtcTime),
             0x18 => Ok(Tag::GeneralizedTime),
@@ -353,8 +341,6 @@ impl fmt::Display for Tag {
             Tag::Set => f.write_str("SET"),
             Tag::NumericString => f.write_str("NumericString"),
             Tag::PrintableString => f.write_str("PrintableString"),
-            Tag::TeletexString => f.write_str("TeletexString"),
-            Tag::VideotexString => f.write_str("VideotexString"),
             Tag::Ia5String => f.write_str("IA5String"),
             Tag::UtcTime => f.write_str("UTCTime"),
             Tag::GeneralizedTime => f.write_str("GeneralizedTime"),
@@ -417,8 +403,6 @@ mod tests {
         assert_eq!(Tag::Set.class(), Class::Universal);
         assert_eq!(Tag::NumericString.class(), Class::Universal);
         assert_eq!(Tag::PrintableString.class(), Class::Universal);
-        assert_eq!(Tag::TeletexString.class(), Class::Universal);
-        assert_eq!(Tag::VideotexString.class(), Class::Universal);
         assert_eq!(Tag::Ia5String.class(), Class::Universal);
         assert_eq!(Tag::UtcTime.class(), Class::Universal);
         assert_eq!(Tag::GeneralizedTime.class(), Class::Universal);

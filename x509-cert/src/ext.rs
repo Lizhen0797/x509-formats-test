@@ -1,6 +1,6 @@
 //! Standardized X.509 Certificate Extensions
 
-use der::{Sequence, ValueOrd};
+use der::Sequence;
 use spki::ObjectIdentifier;
 
 pub mod pkix;
@@ -22,8 +22,7 @@ pub mod pkix;
 /// ```
 ///
 /// [RFC 5280 Section 4.1.2.9]: https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.9
-#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
-#[derive(Clone, Debug, Eq, PartialEq, Sequence, ValueOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 #[allow(missing_docs)]
 pub struct Extension<'a> {
     pub extn_id: ObjectIdentifier,

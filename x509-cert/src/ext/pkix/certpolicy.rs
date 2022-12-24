@@ -4,8 +4,8 @@ use alloc::vec::Vec;
 
 use const_oid::db::rfc5912::ID_CE_CERTIFICATE_POLICIES;
 use const_oid::AssociatedOid;
-use der::asn1::{GeneralizedTime, Ia5StringRef, ObjectIdentifier, UintRef, Utf8StringRef};
-use der::{AnyRef, Choice, Sequence, ValueOrd};
+use der::asn1::{GeneralizedTime, Ia5StringRef, ObjectIdentifier, UIntRef, Utf8StringRef};
+use der::{AnyRef, Choice, Sequence};
 
 /// CertificatePolicies as defined in [RFC 5280 Section 4.2.1.4].
 ///
@@ -35,7 +35,7 @@ impl_newtype!(CertificatePolicies<'a>, Vec<PolicyInformation<'a>>);
 /// ```
 ///
 /// [RFC 5280 Section 4.2.1.4]: https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.4
-#[derive(Clone, Debug, Eq, PartialEq, Sequence, ValueOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 #[allow(missing_docs)]
 pub struct PolicyInformation<'a> {
     pub policy_identifier: ObjectIdentifier,
@@ -52,7 +52,7 @@ pub struct PolicyInformation<'a> {
 /// ```
 ///
 /// [RFC 5280 Section 4.2.1.4]: https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.4
-#[derive(Clone, Debug, Eq, PartialEq, Sequence, ValueOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 #[allow(missing_docs)]
 pub struct PolicyQualifierInfo<'a> {
     pub policy_qualifier_id: ObjectIdentifier,
@@ -98,7 +98,7 @@ pub struct UserNotice<'a> {
 #[allow(missing_docs)]
 pub struct NoticeReference<'a> {
     pub organization: DisplayText<'a>,
-    pub notice_numbers: Option<Vec<UintRef<'a>>>,
+    pub notice_numbers: Option<Vec<UIntRef<'a>>>,
 }
 
 /// DisplayText as defined in [RFC 5280 Section 4.2.1.4].

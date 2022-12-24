@@ -1,12 +1,11 @@
 //! Certificate tests
 
 use der::{
-    asn1::{BitStringRef, ContextSpecific, ObjectIdentifier, PrintableStringRef, Utf8StringRef},
+    asn1::{BitStringRef, ContextSpecific, ObjectIdentifier, UIntRef},
     Decode, DecodeValue, Encode, FixedTag, Header, Reader, Tag, Tagged,
 };
 use hex_literal::hex;
-use spki::AlgorithmIdentifierRef;
-use x509_cert::serial_number::SerialNumber;
+use spki::AlgorithmIdentifier;
 use x509_cert::Certificate;
 use x509_cert::*;
 
@@ -117,7 +116,7 @@ fn reencode_cert() {
     let reencoded_tbs = parsed_tbs.to_vec().unwrap();
     assert_eq!(defer_cert.tbs_certificate, reencoded_tbs);
 
-    let parsed_sigalg = AlgorithmIdentifierRef::from_der(defer_cert.signature_algorithm).unwrap();
+    let parsed_sigalg = AlgorithmIdentifier::from_der(defer_cert.signature_algorithm).unwrap();
     let reencoded_sigalg = parsed_sigalg.to_vec().unwrap();
     assert_eq!(defer_cert.signature_algorithm, reencoded_sigalg);
 
@@ -128,7 +127,7 @@ fn reencode_cert() {
     let parsed_coverage_tbs =
         DeferDecodeTbsCertificate::from_der(defer_cert.tbs_certificate).unwrap();
 
-    // TODO - defer decode then re-encode version field
+    // TODO - defer decode then reencode version field
 
     let encoded_serial = parsed_tbs.serial_number.to_vec().unwrap();
     assert_eq!(parsed_coverage_tbs.serial_number, encoded_serial);
@@ -208,7 +207,7 @@ fn decode_cert() {
     ];
     assert_eq!(
         cert.tbs_certificate.serial_number,
-        SerialNumber::new(&target_serial).unwrap()
+        UIntRef::new(&target_serial).unwrap()
     );
     assert_eq!(
         cert.tbs_certificate.signature.oid.to_string(),
@@ -230,30 +229,20 @@ fn decode_cert() {
         for atav in i1 {
             if 0 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.6");
-                assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
-                    "US"
-                );
+                assert_eq!(atav.value.printable_string().unwrap().to_string(), "US");
             } else if 1 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.10");
-                assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
-                    "Mock"
-                );
+                assert_eq!(atav.value.printable_string().unwrap().to_string(), "Mock");
             } else if 2 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.10");
                 assert_eq!(
-                    Utf8StringRef::try_from(&atav.value).unwrap().to_string(),
+                    atav.value.utf8_string().unwrap().to_string(),
                     "IdenTrust Services LLC"
                 );
             } else if 3 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.3");
                 assert_eq!(
-                    Utf8StringRef::try_from(&atav.value).unwrap().to_string(),
+                    atav.value.utf8_string().unwrap().to_string(),
                     "PTE IdenTrust Global Common Root CA 1"
                 );
             }
@@ -287,35 +276,24 @@ fn decode_cert() {
             if 0 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.3");
                 assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
+                    atav.value.printable_string().unwrap().to_string(),
                     "Test Federal Bridge CA"
                 );
             } else if 1 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.11");
                 assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
+                    atav.value.printable_string().unwrap().to_string(),
                     "TestFPKI"
                 );
             } else if 2 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.10");
                 assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
+                    atav.value.printable_string().unwrap().to_string(),
                     "U.S. Government"
                 );
             } else if 3 == counter {
                 assert_eq!(atav.oid.to_string(), "2.5.4.6");
-                assert_eq!(
-                    PrintableStringRef::try_from(&atav.value)
-                        .unwrap()
-                        .to_string(),
-                    "US"
-                );
+                assert_eq!(atav.value.printable_string().unwrap().to_string(), "US");
             }
             counter += 1;
         }

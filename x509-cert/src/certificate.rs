@@ -1,17 +1,13 @@
 //! Certificate types
 
-use crate::{name::Name, serial_number::SerialNumber, time::Validity};
+use crate::{name::Name, time::Validity};
 
 use alloc::vec::Vec;
-use core::cmp::Ordering;
 
 use const_oid::AssociatedOid;
-use der::asn1::BitStringRef;
-use der::{Decode, Enumerated, Error, ErrorKind, Sequence, ValueOrd};
-use spki::{AlgorithmIdentifierRef, SubjectPublicKeyInfoRef};
-
-#[cfg(feature = "pem")]
-use der::pem::PemLabel;
+use der::asn1::{BitStringRef, UIntRef};
+use der::{Decode, Enumerated, Error, ErrorKind, Sequence};
+use spki::{AlgorithmIdentifier, SubjectPublicKeyInfo};
 
 /// Certificate `Version` as defined in [RFC 5280 Section 4.1].
 ///
@@ -20,7 +16,6 @@ use der::pem::PemLabel;
 /// ```
 ///
 /// [RFC 5280 Section 4.1]: https://datatracker.ietf.org/doc/html/rfc5280#section-4.1
-#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Enumerated)]
 #[asn1(type = "INTEGER")]
 #[repr(u8)]
@@ -33,12 +28,6 @@ pub enum Version {
 
     /// Version 3
     V3 = 2,
-}
-
-impl ValueOrd for Version {
-    fn value_cmp(&self, other: &Self) -> der::Result<Ordering> {
-        (*self as u8).value_cmp(&(*other as u8))
-    }
 }
 
 impl Default for Version {
@@ -72,8 +61,7 @@ impl Default for Version {
 /// ```
 ///
 /// [RFC 5280 Section 4.1]: https://datatracker.ietf.org/doc/html/rfc5280#section-4.1
-#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
-#[derive(Clone, Debug, Eq, PartialEq, Sequence, ValueOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 #[allow(missing_docs)]
 pub struct TbsCertificate<'a> {
     /// The certificate version
@@ -85,12 +73,12 @@ pub struct TbsCertificate<'a> {
     #[asn1(context_specific = "0", default = "Default::default")]
     pub version: Version,
 
-    pub serial_number: SerialNumber,
-    pub signature: AlgorithmIdentifierRef<'a>,
-    pub issuer: Name,
+    pub serial_number: UIntRef<'a>,
+    pub signature: AlgorithmIdentifier<'a>,
+    pub issuer: Name<'a>,
     pub validity: Validity,
-    pub subject: Name,
-    pub subject_public_key_info: SubjectPublicKeyInfoRef<'a>,
+    pub subject: Name<'a>,
+    pub subject_public_key_info: SubjectPublicKeyInfo<'a>,
 
     #[asn1(context_specific = "1", tag_mode = "IMPLICIT", optional = "true")]
     pub issuer_unique_id: Option<BitStringRef<'a>>,
@@ -147,19 +135,12 @@ impl<'a> TbsCertificate<'a> {
 /// ```
 ///
 /// [RFC 5280 Section 4.1]: https://datatracker.ietf.org/doc/html/rfc5280#section-4.1
-#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
-#[derive(Clone, Debug, Eq, PartialEq, Sequence, ValueOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Sequence)]
 #[allow(missing_docs)]
 pub struct Certificate<'a> {
     pub tbs_certificate: TbsCertificate<'a>,
-    pub signature_algorithm: AlgorithmIdentifierRef<'a>,
+    pub signature_algorithm: AlgorithmIdentifier<'a>,
     pub signature: BitStringRef<'a>,
-}
-
-#[cfg(feature = "pem")]
-#[cfg_attr(docsrs, doc(cfg(feature = "pem")))]
-impl PemLabel for Certificate<'_> {
-    const PEM_LABEL: &'static str = "CERTIFICATE";
 }
 
 /// `PkiPath` as defined by X.509 and referenced by [RFC 6066].

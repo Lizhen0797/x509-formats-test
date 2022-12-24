@@ -1,18 +1,29 @@
 
-// #![no_std]
+use std::collections::HashMap;
 
-use x509_cert::Certificate;
-use x509_parser::pem::Pem;
-use x509_certificate;
+use x509_cert::{Certificate, ext::Extension};
 use der::{
-    asn1::{BitStringRef, ContextSpecific, ObjectIdentifier, PrintableStringRef, Utf8StringRef},
+    asn1::{BitStringRef, ContextSpecific, ObjectIdentifier, UIntRef},
     Decode, DecodeValue, Encode, FixedTag, Header, Reader, Tag, Tagged,
 };
-
-use spki::AlgorithmIdentifierRef;
-use x509_cert::serial_number::SerialNumber;
 use x509_cert::*;
+use lite_json::{json_parser::parse_json, JsonValue};
 
+// TODO - parse and compare extension values
+const EXTENSIONS: &[(&str, bool)] = &[
+    ("2.5.29.15", true),
+    ("2.5.29.19", true),
+    ("2.5.29.33", false),
+    ("2.5.29.32", false),
+    ("2.5.29.14", false),
+    ("2.5.29.31", false),
+    ("1.3.6.1.5.5.7.1.11", false),
+    ("1.3.6.1.5.5.7.1.1", false),
+    ("2.5.29.54", false),
+    ("2.5.29.35", false),
+];
+
+///Structure supporting deferred decoding of fields in the Certificate SEQUENCE
 pub struct DeferDecodeCertificate<'a> {
     /// tbsCertificate       TBSCertificate,
     pub tbs_certificate: &'a [u8],
@@ -95,74 +106,61 @@ impl FixedTag for DeferDecodeTbsCertificate<'_> {
     const TAG: Tag = Tag::Sequence;
 }
 
-fn test_x509_parser(){
-    static IGCA_PEM: &str = "/Users/lizhen/Desktop/test2.pem";
-    // 这里是io的方式读取数据
-    // let data = std::fs::read(IGCA_PEM).expect("Could not read file");
-    // let test_data = std::fs::read(IGCA_PEM);
-    let test_data = String::from("-----BEGIN CERTIFICATE-----\nMIIDHjCCAsWgAwIBAgIUGTUcF5Bj0nXRt/BtG0SslzZfVgMwCgYIKoZIzj0EAwIw\najELMAkGA1UEBhMCVVMxFzAVBgNVBAgTDk5vcnRoIENhcm9saW5hMRQwEgYDVQQK\nEwtIeXBlcmxlZGdlcjEPMA0GA1UECxMGRmFicmljMRswGQYDVQQDExJjYS5vcmcx\nLmxhYjgwNS5jb20wHhcNMjEwMzA3MDk0NTAwWhcNMjIwMzA3MDk1NTAwWjBbMQsw\nCQYDVQQGEwJVUzEXMBUGA1UECBMOTm9ydGggQ2Fyb2xpbmExFDASBgNVBAoTC0h5\ncGVybGVkZ2VyMQ0wCwYDVQQLEwRwZWVyMQ4wDAYDVQQDEwVwZWVyMDBZMBMGByqG\nSM49AgEGCCqGSM49AwEHA0IABJsfYuGbeTpHC0PUkbms0NWpEmhul89+nD+fjQ/i\nHvGz4Qmicdz8Ydee0oyQbqim9nNrHeCa/Y3oBStZFrqqxuyjggFWMIIBUjAOBgNV\nHQ8BAf8EBAMCB4AwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQU2UAiJ0WoEKTT9bpe\n0s2r/tCtyRQwHwYDVR0jBBgwFoAU6xcRmVzmh0HmJ111bISCbUJQ/xMwIAYDVR0R\nBBkwF4IVcGVlcjAub3JnMS5sYWI4MDUuY29tMIHPBggqAwQFBgcIAQSBwnsiYXR0\ncnMiOnsiRGVwdExldmVsIjoiMiIsIkRlcHROYW1lIjoiODEyIiwiRGVwdFR5cGUi\nOiJjb21wdXRlciIsIlN1cGVyRGVwdE5hbWUiOiI4MDQiLCJhZG1pbiI6InRydWUi\nLCJoZi5BZmZpbGlhdGlvbiI6IiIsImhmLkVucm9sbG1lbnRJRCI6InBlZXIwIiwi\naGYuUmVnaXN0cmFyLlJvbGVzIjoicGVlciIsImhmLlR5cGUiOiJwZWVyIn19MAoG\nCCqGSM49BAMCA0cAMEQCIC4PUwJHhxi20JJT+yAdB+i4UWNcPmIFNNFHyHYwgvCm\nAiBQxf8/6m576DKRpTB+x1BAOhnk2MoNdm9Qrv4OC5Oykw==\n-----END CERTIFICATE-----");
-    let test_data = ascii_converter::string_to_decimals(&test_data).expect("Could not read file");
-    for pem in Pem::iter_from_buffer(&test_data) {
-        let pem = pem.expect("Reading next PEM block failed");
-        let x509 = pem.parse_x509().expect("X.509: decoding DER failed");
-        // x509是整个证书的解析，其中extension应该和格式相关
-        let test = x509.extensions()[5].value;
-        let mut text = String::new();
-        for d in test.iter(){
-            if !(d >=  &32 && d <= &126) {
-                break;
-            } else {
-                text.push(*d as char);                
+pub fn decimals_to_string(dec_vec: &[u8]) -> Result<String, String>{
+
+    let mut text = String::new();
+
+    for d in dec_vec.iter(){
+
+        if !(d >=  &32 && d <= &126) {
+            return Err("the number is outside the ascii range".to_string());
+        } else {
+            text.push(*d as char);
+            
+        }
+
+    }
+
+    Ok(text)
+}
+fn get_department_identity(extensions: &Vec<Extension>) -> HashMap<String, String>{
+    let mut map:HashMap<String, String> = HashMap::new();
+    let ipOid:ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.3.4.5.6.7.8.1");
+    for extension in extensions.iter() {
+        //println!("{:?} {:?} {:?}", x, extension.extn_id, extension.extn_id.cmp(&ipOid));
+        if (extension.extn_id.eq(&ipOid)) {
+            //println!("{:?}", extension.extn_value);
+            let data = decimals_to_string(extension.extn_value).unwrap();
+            let json_data = parse_json(&data).expect("Invalid JSON specified!");
+            let json_obj = json_data.to_object().unwrap();
+            for i in json_obj.iter(){
+                let attr_key:String = i.0.to_vec().iter().collect();
+                //println!("{:?}", attr_key);
+                let attr_value = &i.1;
+
+                for (item_key, item_value) in attr_value.as_object().unwrap(){
+                    let item_key_string:String = item_key.to_vec().iter().collect();
+                    let item_value_string:String = (*item_value).to_owned().to_string().unwrap().iter().collect();
+                    //println!("{:?}", item_value.is_string());
+                    //println!("{:?} {:?}", item_key_string, item_value_string);
+                    map.insert(item_key_string, item_value_string);
+                }
             }
         }
-        println!("{}",text)
     }
+    map
 }
 
-fn test_x509_certificate() {
-    let test_data = String::from("-----BEGIN CERTIFICATE-----\nMIIDHjCCAsWgAwIBAgIUGTUcF5Bj0nXRt/BtG0SslzZfVgMwCgYIKoZIzj0EAwIw\najELMAkGA1UEBhMCVVMxFzAVBgNVBAgTDk5vcnRoIENhcm9saW5hMRQwEgYDVQQK\nEwtIeXBlcmxlZGdlcjEPMA0GA1UECxMGRmFicmljMRswGQYDVQQDExJjYS5vcmcx\nLmxhYjgwNS5jb20wHhcNMjEwMzA3MDk0NTAwWhcNMjIwMzA3MDk1NTAwWjBbMQsw\nCQYDVQQGEwJVUzEXMBUGA1UECBMOTm9ydGggQ2Fyb2xpbmExFDASBgNVBAoTC0h5\ncGVybGVkZ2VyMQ0wCwYDVQQLEwRwZWVyMQ4wDAYDVQQDEwVwZWVyMDBZMBMGByqG\nSM49AgEGCCqGSM49AwEHA0IABJsfYuGbeTpHC0PUkbms0NWpEmhul89+nD+fjQ/i\nHvGz4Qmicdz8Ydee0oyQbqim9nNrHeCa/Y3oBStZFrqqxuyjggFWMIIBUjAOBgNV\nHQ8BAf8EBAMCB4AwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQU2UAiJ0WoEKTT9bpe\n0s2r/tCtyRQwHwYDVR0jBBgwFoAU6xcRmVzmh0HmJ111bISCbUJQ/xMwIAYDVR0R\nBBkwF4IVcGVlcjAub3JnMS5sYWI4MDUuY29tMIHPBggqAwQFBgcIAQSBwnsiYXR0\ncnMiOnsiRGVwdExldmVsIjoiMiIsIkRlcHROYW1lIjoiODEyIiwiRGVwdFR5cGUi\nOiJjb21wdXRlciIsIlN1cGVyRGVwdE5hbWUiOiI4MDQiLCJhZG1pbiI6InRydWUi\nLCJoZi5BZmZpbGlhdGlvbiI6IiIsImhmLkVucm9sbG1lbnRJRCI6InBlZXIwIiwi\naGYuUmVnaXN0cmFyLlJvbGVzIjoicGVlciIsImhmLlR5cGUiOiJwZWVyIn19MAoG\nCCqGSM49BAMCA0cAMEQCIC4PUwJHhxi20JJT+yAdB+i4UWNcPmIFNNFHyHYwgvCm\nAiBQxf8/6m576DKRpTB+x1BAOhnk2MoNdm9Qrv4OC5Oykw==\n-----END CERTIFICATE-----");
-    let test_data = ascii_converter::string_to_decimals(&test_data).expect("Could not read file");
-    
-    let test2 = x509_certificate::certificate::X509Certificate::from_pem(&test_data).expect("1");
-    //println!("{:?}", test2);
-    for item in test2.iter_extensions(){
-        //println!("{:?}", item);
-        let extension = item;
-        let extensions_value = &extension.value;
-        // let extension_txt = extensions_value;
-        println!("{:?} {:?}", extension.id, extensions_value.to_bytes())
-    }
-}
-
-fn test_barebones_x509() {
-    //let test_data = String::from("-----BEGIN CERTIFICATE-----\nMIIDHjCCAsWgAwIBAgIUGTUcF5Bj0nXRt/BtG0SslzZfVgMwCgYIKoZIzj0EAwIw\najELMAkGA1UEBhMCVVMxFzAVBgNVBAgTDk5vcnRoIENhcm9saW5hMRQwEgYDVQQK\nEwtIeXBlcmxlZGdlcjEPMA0GA1UECxMGRmFicmljMRswGQYDVQQDExJjYS5vcmcx\nLmxhYjgwNS5jb20wHhcNMjEwMzA3MDk0NTAwWhcNMjIwMzA3MDk1NTAwWjBbMQsw\nCQYDVQQGEwJVUzEXMBUGA1UECBMOTm9ydGggQ2Fyb2xpbmExFDASBgNVBAoTC0h5\ncGVybGVkZ2VyMQ0wCwYDVQQLEwRwZWVyMQ4wDAYDVQQDEwVwZWVyMDBZMBMGByqG\nSM49AgEGCCqGSM49AwEHA0IABJsfYuGbeTpHC0PUkbms0NWpEmhul89+nD+fjQ/i\nHvGz4Qmicdz8Ydee0oyQbqim9nNrHeCa/Y3oBStZFrqqxuyjggFWMIIBUjAOBgNV\nHQ8BAf8EBAMCB4AwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQU2UAiJ0WoEKTT9bpe\n0s2r/tCtyRQwHwYDVR0jBBgwFoAU6xcRmVzmh0HmJ111bISCbUJQ/xMwIAYDVR0R\nBBkwF4IVcGVlcjAub3JnMS5sYWI4MDUuY29tMIHPBggqAwQFBgcIAQSBwnsiYXR0\ncnMiOnsiRGVwdExldmVsIjoiMiIsIkRlcHROYW1lIjoiODEyIiwiRGVwdFR5cGUi\nOiJjb21wdXRlciIsIlN1cGVyRGVwdE5hbWUiOiI4MDQiLCJhZG1pbiI6InRydWUi\nLCJoZi5BZmZpbGlhdGlvbiI6IiIsImhmLkVucm9sbG1lbnRJRCI6InBlZXIwIiwi\naGYuUmVnaXN0cmFyLlJvbGVzIjoicGVlciIsImhmLlR5cGUiOiJwZWVyIn19MAoG\nCCqGSM49BAMCA0cAMEQCIC4PUwJHhxi20JJT+yAdB+i4UWNcPmIFNNFHyHYwgvCm\nAiBQxf8/6m576DKRpTB+x1BAOhnk2MoNdm9Qrv4OC5Oykw==\n-----END CERTIFICATE-----");
-    //let test_data = ascii_converter::string_to_decimals(&test_data).expect("Could not read file");
-    
-    let certificate = include_bytes!("../testing.crt");
-    let data = std::fs::read("/Users/lizhen/Code/rust/x509/testing.crt").expect("Could not read file");
-    // println!("{:?}", data);
-    // println!("{:?}", certificate);
-    let cert = barebones_x509::parse_certificate(&data).unwrap();
-    println!("{:?}", cert);
-    
-    println!("{:?}", cert.extensions());
-}
-
-fn test_der_parser() {
-    let test_data = String::from("-----BEGIN CERTIFICATE-----\nMIIDHjCCAsWgAwIBAgIUGTUcF5Bj0nXRt/BtG0SslzZfVgMwCgYIKoZIzj0EAwIw\najELMAkGA1UEBhMCVVMxFzAVBgNVBAgTDk5vcnRoIENhcm9saW5hMRQwEgYDVQQK\nEwtIeXBlcmxlZGdlcjEPMA0GA1UECxMGRmFicmljMRswGQYDVQQDExJjYS5vcmcx\nLmxhYjgwNS5jb20wHhcNMjEwMzA3MDk0NTAwWhcNMjIwMzA3MDk1NTAwWjBbMQsw\nCQYDVQQGEwJVUzEXMBUGA1UECBMOTm9ydGggQ2Fyb2xpbmExFDASBgNVBAoTC0h5\ncGVybGVkZ2VyMQ0wCwYDVQQLEwRwZWVyMQ4wDAYDVQQDEwVwZWVyMDBZMBMGByqG\nSM49AgEGCCqGSM49AwEHA0IABJsfYuGbeTpHC0PUkbms0NWpEmhul89+nD+fjQ/i\nHvGz4Qmicdz8Ydee0oyQbqim9nNrHeCa/Y3oBStZFrqqxuyjggFWMIIBUjAOBgNV\nHQ8BAf8EBAMCB4AwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQU2UAiJ0WoEKTT9bpe\n0s2r/tCtyRQwHwYDVR0jBBgwFoAU6xcRmVzmh0HmJ111bISCbUJQ/xMwIAYDVR0R\nBBkwF4IVcGVlcjAub3JnMS5sYWI4MDUuY29tMIHPBggqAwQFBgcIAQSBwnsiYXR0\ncnMiOnsiRGVwdExldmVsIjoiMiIsIkRlcHROYW1lIjoiODEyIiwiRGVwdFR5cGUi\nOiJjb21wdXRlciIsIlN1cGVyRGVwdE5hbWUiOiI4MDQiLCJhZG1pbiI6InRydWUi\nLCJoZi5BZmZpbGlhdGlvbiI6IiIsImhmLkVucm9sbG1lbnRJRCI6InBlZXIwIiwi\naGYuUmVnaXN0cmFyLlJvbGVzIjoicGVlciIsImhmLlR5cGUiOiJwZWVyIn19MAoG\nCCqGSM49BAMCA0cAMEQCIC4PUwJHhxi20JJT+yAdB+i4UWNcPmIFNNFHyHYwgvCm\nAiBQxf8/6m576DKRpTB+x1BAOhnk2MoNdm9Qrv4OC5Oykw==\n-----END CERTIFICATE-----");
-    let test_data = ascii_converter::string_to_decimals(&test_data).expect("Could not read file");
-    let result = der_parser::parse_der(&test_data).expect("??");
-    println!("{:?}", result.0);
-    println!("{:?}", result.1);
-}
-
-fn test_der() {
-    let test_data = String::from("-----BEGIN CERTIFICATE-----\nMIIDHjCCAsWgAwIBAgIUGTUcF5Bj0nXRt/BtG0SslzZfVgMwCgYIKoZIzj0EAwIw\najELMAkGA1UEBhMCVVMxFzAVBgNVBAgTDk5vcnRoIENhcm9saW5hMRQwEgYDVQQK\nEwtIeXBlcmxlZGdlcjEPMA0GA1UECxMGRmFicmljMRswGQYDVQQDExJjYS5vcmcx\nLmxhYjgwNS5jb20wHhcNMjEwMzA3MDk0NTAwWhcNMjIwMzA3MDk1NTAwWjBbMQsw\nCQYDVQQGEwJVUzEXMBUGA1UECBMOTm9ydGggQ2Fyb2xpbmExFDASBgNVBAoTC0h5\ncGVybGVkZ2VyMQ0wCwYDVQQLEwRwZWVyMQ4wDAYDVQQDEwVwZWVyMDBZMBMGByqG\nSM49AgEGCCqGSM49AwEHA0IABJsfYuGbeTpHC0PUkbms0NWpEmhul89+nD+fjQ/i\nHvGz4Qmicdz8Ydee0oyQbqim9nNrHeCa/Y3oBStZFrqqxuyjggFWMIIBUjAOBgNV\nHQ8BAf8EBAMCB4AwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQU2UAiJ0WoEKTT9bpe\n0s2r/tCtyRQwHwYDVR0jBBgwFoAU6xcRmVzmh0HmJ111bISCbUJQ/xMwIAYDVR0R\nBBkwF4IVcGVlcjAub3JnMS5sYWI4MDUuY29tMIHPBggqAwQFBgcIAQSBwnsiYXR0\ncnMiOnsiRGVwdExldmVsIjoiMiIsIkRlcHROYW1lIjoiODEyIiwiRGVwdFR5cGUi\nOiJjb21wdXRlciIsIlN1cGVyRGVwdE5hbWUiOiI4MDQiLCJhZG1pbiI6InRydWUi\nLCJoZi5BZmZpbGlhdGlvbiI6IiIsImhmLkVucm9sbG1lbnRJRCI6InBlZXIwIiwi\naGYuUmVnaXN0cmFyLlJvbGVzIjoicGVlciIsImhmLlR5cGUiOiJwZWVyIn19MAoG\nCCqGSM49BAMCA0cAMEQCIC4PUwJHhxi20JJT+yAdB+i4UWNcPmIFNNFHyHYwgvCm\nAiBQxf8/6m576DKRpTB+x1BAOhnk2MoNdm9Qrv4OC5Oykw==\n-----END CERTIFICATE-----");
-    let test_data = ascii_converter::string_to_decimals(&test_data).expect("Could not read file");
-}
 fn main() {
     let der_encoded_cert =
         include_bytes!("../certificatename.der");
-    let result = Certificate::from_der(der_encoded_cert);
-    println!("{:?}", result);
+    let result = Certificate::from_der(der_encoded_cert).unwrap();
+    //println!("{:?}", result.tbs_certificate.extensions);
+    // println!("{:?}", result.tbs_certificate.validity);
+    let validity = result.tbs_certificate.validity;
+    let before_time = validity.not_before;
+    let after_time = validity.not_before;
+    let extensions =  result.tbs_certificate.extensions.unwrap();
+    println!("afterTime: {:?} beforeTime: {:?}", after_time.to_date_time().unix_duration(), before_time.to_date_time().unix_duration());
+    println!("{:?}", get_department_identity(&extensions));
 }

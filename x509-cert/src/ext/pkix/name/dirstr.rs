@@ -1,5 +1,5 @@
-use der::asn1::{PrintableStringRef, TeletexStringRef, Utf8StringRef};
-use der::{Choice, ValueOrd};
+use der::asn1::{PrintableStringRef, Utf8StringRef};
+use der::Choice;
 
 /// DirectoryString as defined in [RFC 5280 Section 4.2.1.4].
 ///
@@ -38,14 +38,11 @@ use der::{Choice, ValueOrd};
 /// the need arises, we only support `PrintableString` and `UTF8String`.
 ///
 /// [RFC 5280 Section 4.2.1.4]: https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.4
-#[derive(Clone, Debug, Eq, PartialEq, Choice, ValueOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Choice)]
 #[allow(missing_docs)]
 pub enum DirectoryString<'a> {
     #[asn1(type = "PrintableString")]
     PrintableString(PrintableStringRef<'a>),
-
-    #[asn1(type = "TeletexString")]
-    TeletexString(TeletexStringRef<'a>),
 
     #[asn1(type = "UTF8String")]
     Utf8String(Utf8StringRef<'a>),

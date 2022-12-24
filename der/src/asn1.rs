@@ -20,10 +20,8 @@ mod real;
 mod sequence;
 mod sequence_of;
 mod set_of;
-mod teletex_string;
 mod utc_time;
 mod utf8_string;
-mod videotex_string;
 
 pub use self::{
     any::AnyRef,
@@ -32,25 +30,20 @@ pub use self::{
     context_specific::{ContextSpecific, ContextSpecificRef},
     generalized_time::GeneralizedTime,
     ia5_string::Ia5StringRef,
-    integer::bigint::UintRef,
+    integer::bigint::UIntRef,
     null::Null,
     octet_string::OctetStringRef,
     printable_string::PrintableStringRef,
     sequence::{Sequence, SequenceRef},
     sequence_of::{SequenceOf, SequenceOfIter},
     set_of::{SetOf, SetOfIter},
-    teletex_string::TeletexStringRef,
     utc_time::UtcTime,
     utf8_string::Utf8StringRef,
-    videotex_string::VideotexStringRef,
 };
 
 #[cfg(feature = "alloc")]
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
-pub use self::{
-    any::Any, bit_string::BitString, integer::bigint::Uint, octet_string::OctetString,
-    set_of::SetOfVec,
-};
+pub use self::{any::Any, bit_string::BitString, octet_string::OctetString, set_of::SetOfVec};
 
 #[cfg(feature = "oid")]
 #[cfg_attr(docsrs, doc(cfg(feature = "oid")))]

@@ -1,7 +1,7 @@
 use super::GeneralNames;
 use crate::name::RelativeDistinguishedName;
 
-use der::{Choice, ValueOrd};
+use der::Choice;
 
 /// DistributionPointName as defined in [RFC 5280 Section 4.2.1.13].
 ///
@@ -13,12 +13,12 @@ use der::{Choice, ValueOrd};
 /// ```
 ///
 /// [RFC 5280 Section 4.2.1.13]: https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.13
-#[derive(Clone, Debug, Eq, PartialEq, Choice, ValueOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Choice)]
 #[allow(missing_docs)]
 pub enum DistributionPointName<'a> {
     #[asn1(context_specific = "0", tag_mode = "IMPLICIT", constructed = "true")]
     FullName(GeneralNames<'a>),
 
     #[asn1(context_specific = "1", tag_mode = "IMPLICIT", constructed = "true")]
-    NameRelativeToCRLIssuer(RelativeDistinguishedName),
+    NameRelativeToCRLIssuer(RelativeDistinguishedName<'a>),
 }

@@ -2,8 +2,8 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc(
-    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg",
-    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/media/6ee8e381/logo.svg"
+    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
 )]
 #![forbid(unsafe_code)]
 #![warn(
@@ -52,11 +52,9 @@
 //! - [`ObjectIdentifier`]: ASN.1 `OBJECT IDENTIFIER`.
 //! - [`OctetString`], [`OctetStringRef`]: ASN.1 `OCTET STRING`.
 //! - [`PrintableStringRef`]: ASN.1 `PrintableString` (ASCII subset).
-//! - [`TeletexStringRef`]: ASN.1 `TeletexString`.
-//! - [`VideotexStringRef`]: ASN.1 `VideotexString`.
 //! - [`SequenceOf`]: ASN.1 `SEQUENCE OF`.
 //! - [`SetOf`], [`SetOfVec`]: ASN.1 `SET OF`.
-//! - [`UintRef`]: ASN.1 unsigned `INTEGER` with raw access to encoded bytes.
+//! - [`UIntRef`]: ASN.1 unsigned `INTEGER` with raw access to encoded bytes.
 //! - [`UtcTime`]: ASN.1 `UTCTime`.
 //! - [`Utf8StringRef`]: ASN.1 `UTF8String`.
 //!
@@ -310,25 +308,23 @@
 //! [A Layman's Guide to a Subset of ASN.1, BER, and DER]: https://luca.ntop.org/Teaching/Appunti/asn1.html
 //! [A Warm Welcome to ASN.1 and DER]: https://letsencrypt.org/docs/a-warm-welcome-to-asn1-and-der/
 //!
-//! [`Any`]: asn1::Any
+//! [`Any`]: asn1::AnyRef
 //! [`AnyRef`]: asn1::AnyRef
 //! [`ContextSpecific`]: asn1::ContextSpecific
 //! [`ContextSpecificRef`]: asn1::ContextSpecificRef
-//! [`BitString`]: asn1::BitString
+//! [`BitString`]: asn1::BitStringRef
 //! [`BitStringRef`]: asn1::BitStringRef
 //! [`GeneralizedTime`]: asn1::GeneralizedTime
 //! [`Ia5StringRef`]: asn1::Ia5StringRef
 //! [`Null`]: asn1::Null
 //! [`ObjectIdentifier`]: asn1::ObjectIdentifier
-//! [`OctetString`]: asn1::OctetString
+//! [`OctetString`]: asn1::OctetStringRef
 //! [`OctetStringRef`]: asn1::OctetStringRef
 //! [`PrintableStringRef`]: asn1::PrintableStringRef
-//! [`TeletexStringRef`]: asn1::TeletexStringRef
-//! [`VideotexStringRef`]: asn1::VideotexStringRef
 //! [`SequenceOf`]: asn1::SequenceOf
 //! [`SetOf`]: asn1::SetOf
 //! [`SetOfVec`]: asn1::SetOfVec
-//! [`UintRef`]: asn1::UintRef
+//! [`UIntRef`]: asn1::UIntRef
 //! [`UtcTime`]: asn1::UtcTime
 //! [`Utf8StringRef`]: asn1::Utf8StringRef
 
@@ -340,7 +336,6 @@ extern crate alloc;
 extern crate std;
 
 pub mod asn1;
-pub mod referenced;
 
 pub(crate) mod arrayvec;
 mod byte_slice;
@@ -357,8 +352,6 @@ mod str_slice;
 mod tag;
 mod writer;
 
-#[cfg(feature = "alloc")]
-mod bytes;
 #[cfg(feature = "alloc")]
 mod document;
 
@@ -378,7 +371,7 @@ pub use crate::{
 };
 
 #[cfg(feature = "alloc")]
-pub use crate::{asn1::Any, document::Document};
+pub use crate::document::Document;
 
 #[cfg(feature = "bigint")]
 #[cfg_attr(docsrs, doc(cfg(feature = "bigint")))]
@@ -409,6 +402,4 @@ pub use zeroize;
 #[cfg(all(feature = "alloc", feature = "zeroize"))]
 pub use crate::document::SecretDocument;
 
-#[cfg(feature = "alloc")]
-pub(crate) use crate::bytes::Bytes;
 pub(crate) use crate::{arrayvec::ArrayVec, byte_slice::ByteSlice, str_slice::StrSlice};

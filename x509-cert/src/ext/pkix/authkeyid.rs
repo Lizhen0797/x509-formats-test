@@ -1,9 +1,8 @@
 use super::name::GeneralNames;
-use crate::serial_number::SerialNumber;
 
 use const_oid::db::rfc5280::ID_CE_AUTHORITY_KEY_IDENTIFIER;
 use const_oid::{AssociatedOid, ObjectIdentifier};
-use der::asn1::OctetStringRef;
+use der::asn1::{OctetStringRef, UIntRef};
 use der::Sequence;
 
 /// AuthorityKeyIdentifier as defined in [RFC 5280 Section 4.2.1.1].
@@ -29,7 +28,7 @@ pub struct AuthorityKeyIdentifier<'a> {
     pub authority_cert_issuer: Option<GeneralNames<'a>>,
 
     #[asn1(context_specific = "2", tag_mode = "IMPLICIT", optional = "true")]
-    pub authority_cert_serial_number: Option<SerialNumber>,
+    pub authority_cert_serial_number: Option<UIntRef<'a>>,
 }
 
 impl<'a> AssociatedOid for AuthorityKeyIdentifier<'a> {

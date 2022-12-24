@@ -89,13 +89,16 @@ impl_newtype!(IssuerAltName<'a>, name::GeneralNames<'a>);
 ///
 /// [RFC 5280 Section 4.2.1.8]: https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.8
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct SubjectDirectoryAttributes(pub Vec<AttributeTypeAndValue>);
+pub struct SubjectDirectoryAttributes<'a>(pub Vec<AttributeTypeAndValue<'a>>);
 
-impl AssociatedOid for SubjectDirectoryAttributes {
+impl<'a> AssociatedOid for SubjectDirectoryAttributes<'a> {
     const OID: ObjectIdentifier = ID_CE_SUBJECT_DIRECTORY_ATTRIBUTES;
 }
 
-impl_newtype!(SubjectDirectoryAttributes, Vec<AttributeTypeAndValue>);
+impl_newtype!(
+    SubjectDirectoryAttributes<'a>,
+    Vec<AttributeTypeAndValue<'a>>
+);
 
 /// InhibitAnyPolicy as defined in [RFC 5280 Section 4.2.1.14].
 ///
