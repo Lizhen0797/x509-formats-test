@@ -17,4 +17,5 @@ der = { version = "0.6", features = ["derive", "alloc", "flagset"], path = "./de
 flagset = { version = "0.4.3" }
 spki = { version = "0.6", path = "./spki" }
 lite-json = { version = "0.2.0", default-features = false, defaults = ["no_std"] }
-chrono = { version = "0.4.19", default-features = false, features = ["alloc"] }
+serde = { version = "1.0", default-features = false }
+serde_json = { version = "1.0", default-features = false, features=["alloc"] }

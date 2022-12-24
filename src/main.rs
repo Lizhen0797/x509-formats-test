@@ -1,27 +1,25 @@
 
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
-use x509_cert::{Certificate, ext::Extension};
+use x509_cert::{Certificate, ext::Extension, time::Time};
 use der::{
     asn1::{BitStringRef, ContextSpecific, ObjectIdentifier, UIntRef},
     Decode, DecodeValue, Encode, FixedTag, Header, Reader, Tag, Tagged,
 };
 use x509_cert::*;
 use lite_json::{json_parser::parse_json, JsonValue};
-
-// TODO - parse and compare extension values
-const EXTENSIONS: &[(&str, bool)] = &[
-    ("2.5.29.15", true),
-    ("2.5.29.19", true),
-    ("2.5.29.33", false),
-    ("2.5.29.32", false),
-    ("2.5.29.14", false),
-    ("2.5.29.31", false),
-    ("1.3.6.1.5.5.7.1.11", false),
-    ("1.3.6.1.5.5.7.1.1", false),
-    ("2.5.29.54", false),
-    ("2.5.29.35", false),
-];
+use serde_json::{Value};
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct DepartmentIdentityStored {
+    /// 部门类型
+    pub dept_type: String,
+    /// 部门级别
+    pub dept_level: u8,
+    /// 部门名称
+    pub dept_name: String,
+    /// 上级部门名称
+    pub super_dept_name: String,
+}
 
 ///Structure supporting deferred decoding of fields in the Certificate SEQUENCE
 pub struct DeferDecodeCertificate<'a> {
@@ -124,7 +122,7 @@ pub fn decimals_to_string(dec_vec: &[u8]) -> Result<String, String>{
     Ok(text)
 }
 fn get_department_identity(extensions: &Vec<Extension>) -> HashMap<String, String>{
-    let mut map:HashMap<String, String> = HashMap::new();
+    let mut map:HashMap<String,String> = HashMap::new();
     let ipOid:ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.3.4.5.6.7.8.1");
     for extension in extensions.iter() {
         //println!("{:?} {:?} {:?}", x, extension.extn_id, extension.extn_id.cmp(&ipOid));
@@ -151,6 +149,35 @@ fn get_department_identity(extensions: &Vec<Extension>) -> HashMap<String, Strin
     map
 }
 
+fn get_department_identity_easier(extensions: &Vec<Extension>) -> DepartmentIdentityStored{
+    let mut dept_identity =DepartmentIdentityStored{
+        dept_type: "".into(),
+        dept_level: 0,
+        dept_name: "".into(),
+        super_dept_name: "".into()
+    };
+
+    let ipOid:ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.3.4.5.6.7.8.1");
+    for extension in extensions.iter() {
+        //println!("{:?} {:?} {:?}", x, extension.extn_id, extension.extn_id.cmp(&ipOid));
+        if (extension.extn_id.eq(&ipOid)) {
+            let data = decimals_to_string(extension.extn_value).unwrap();
+            let data:Value = serde_json::from_str(&data).unwrap();
+            //println!("{:?}", data["attrs"]["DeptLevel"]);
+            let dept_level = data["attrs"]["DeptLevel"].as_str().unwrap() ;
+            let dept_type = data["attrs"]["DeptType"].as_str().unwrap();
+            let dept_name = data["attrs"]["DeptName"].as_str().unwrap();
+            let super_dept_name = data["attrs"]["SuperDeptName"].as_str().unwrap();
+
+            
+            dept_identity.dept_level = u8::from_str_radix(dept_level, 10).unwrap();
+            dept_identity.dept_type = dept_type.into();
+            dept_identity.dept_name = dept_name.into();
+            dept_identity.super_dept_name = super_dept_name.into();
+        }
+    }
+    dept_identity
+}
 fn main() {
     let der_encoded_cert =
         include_bytes!("../certificatename.der");
@@ -160,7 +187,9 @@ fn main() {
     let validity = result.tbs_certificate.validity;
     let before_time = validity.not_before;
     let after_time = validity.not_before;
-    let extensions =  result.tbs_certificate.extensions.unwrap();
+    let extensions =  result.tbs_certificate.extensions.unwrap();   
+    let test = after_time.to_date_time().unix_duration();
     println!("afterTime: {:?} beforeTime: {:?}", after_time.to_date_time().unix_duration(), before_time.to_date_time().unix_duration());
-    println!("{:?}", get_department_identity(&extensions));
+    println!("{:?}", get_department_identity_easier(&extensions));
+    
 }
